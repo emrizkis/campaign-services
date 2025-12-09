@@ -1,0 +1,199 @@
+basePath: /
+definitions:
+  campaign.Campaign:
+    properties:
+      action_url:
+        type: string
+      end_time:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      is_active:
+        description: For DB/Admin
+        type: boolean
+      max_frequency:
+        type: integer
+      priority:
+        type: integer
+      start_time:
+        type: string
+      target_segment:
+        description: If TargetType == SEGMENT
+        type: string
+      target_type:
+        $ref: '#/definitions/campaign.TargetType'
+      title:
+        type: string
+    type: object
+  campaign.TargetType:
+    enum:
+    - ALL
+    - SEGMENT
+    type: string
+    x-enum-varnames:
+    - TargetTypeAll
+    - TargetTypeSegment
+  main.ImpressionRequest:
+    properties:
+      campaign_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: High-performance Campaign Popup Service with Redis & PostgreSQL.
+  title: Campaign Service API
+  version: "1.0"
+paths:
+  /admin/campaigns:
+    delete:
+      description: Deletes a campaign from DB and Redis.
+      parameters:
+      - description: Campaign ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+      summary: Delete Campaign
+      tags:
+      - Admin
+    get:
+      description: Fetches all campaigns from PostgreSQL.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/campaign.Campaign'
+            type: array
+      summary: List All Campaigns
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      description: Creates a campaign in DB and syncs to Redis.
+      parameters:
+      - description: Campaign Data
+        in: body
+        name: campaign
+        required: true
+        schema:
+          $ref: '#/definitions/campaign.Campaign'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/campaign.Campaign'
+      summary: Create New Campaign
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      description: Updates a campaign in DB and syncs to Redis.
+      parameters:
+      - description: Campaign Data
+        in: body
+        name: campaign
+        required: true
+        schema:
+          $ref: '#/definitions/campaign.Campaign'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/campaign.Campaign'
+      summary: Update Campaign
+      tags:
+      - Admin
+  /admin/campaigns/detail:
+    get:
+      description: Fetches a single campaign from PostgreSQL.
+      parameters:
+      - description: Campaign ID
+        in: query
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/campaign.Campaign'
+      summary: Get Campaign Detail
+      tags:
+      - Admin
+  /debug/sync:
+    post:
+      description: Manually triggers synchronization of all campaigns from DB to Redis.
+      responses:
+        "200":
+          description: Synced
+      summary: Sync DB to Redis
+      tags:
+      - Debug
+  /v1/campaigns/impression:
+    post:
+      consumes:
+      - application/json
+      description: Records that a user has seen a campaign.
+      parameters:
+      - description: Impression Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/main.ImpressionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Track Impression
+      tags:
+      - Client
+  /v1/campaigns/popup:
+    get:
+      consumes:
+      - application/json
+      description: Determines the best campaign popup for a user based on priority,
+        time, and targeting.
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/campaign.Campaign'
+        "204":
+          description: No Content (No suitable campaign)
+        "400":
+          description: Invalid User ID
+          schema:
+            type: string
+      summary: Get Popup for User
+      tags:
+      - Client
+swagger: "2.0"
